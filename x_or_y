@@ -29,8 +29,8 @@ actors.
     $ ./DanielRadcliffe_OR_ElijahWood /absolute/path/image.jpg
     ... lots of processing...
     RESULTS:
-        #1: [ 82.42%] Daniel Radcliffe
-        #2: [ 17.58%] Elijah Wood
+        #1: [ 82.42%%] Daniel Radcliffe
+        #2: [ 17.58%%] Elijah Wood
 """ % (GREEN, ENDC)
 
 dependencies = [
