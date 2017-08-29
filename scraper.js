@@ -62,12 +62,12 @@ bing.list({
     if (results.length == 0)
 	  return;
 	var entry = results[0];
-    console.log('Downloading: %s', entry['thumb']);
+    console.log('(%d left) Downloading: %s', results.length, entry['thumb']);
     request.get(entry['thumb'], function(err, res, body) {
       hash = crypto.createHash('sha256').update(body).digest('hex');
-      console.log('Got: %s', hash);
+//      console.log('Got: %s', hash);
 	  fs.writeFileSync(args['output_directory'] + '/' + hash + '.jpg', body);
-      setTimeout(function() { get_rest(results.slice(1)); }, 200);
+      setTimeout(function() { get_rest(results.slice(1)); }, 500);
     });
   }
   get_rest(results);
