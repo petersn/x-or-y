@@ -1,0 +1,15 @@
+{
+  "name": "x-or-y-scraper",
+  "description": "Image scraper for x-or-y.",
+  "author": "Peter Schmidt-Nielsen",
+  "repository": "https://github.com/petersn/x-or-y",
+  "license": "CC0-1.0",
+  "main": "scraper.js",
+  "dependencies": {
+    "argparse": "latest",
+    "check-dependencies": "^1.1.0",
+    "images-scraper": "latest",
+    "request": "latest",
+    "sanitize-filename": "latest"
+  }
+}

@@ -9,8 +9,8 @@ To use `x_or_y` simply think up a set of things you'd like to distinguish:
 
     $ x_or_y "tree" "car"
     ... lots and lots of processing...
-	$ ./tree_OR_car /absolute/path/picture_of_tree.jpeg
-	... more processing...
+    $ ./tree_OR_car /absolute/path/picture_of_tree.jpeg
+    ... more processing...
     RESULTS:
         #1: [ 98.31%] tree
         #2: [  1.69%] car
@@ -23,6 +23,28 @@ That's all there is to it.
 Despite the dichotomous name, you may have as many different classes as you want.
 
 TODO: Document all the issues and bugs. For example, currently `makeself` cds into the temp dir before running my script, so paths input to the resultant binary have to be absolute. :/
+
+## Dependencies
+
+This project has a lot of dependencies. For Ubuntu/Debian users:
+
+    # Install the Python dependencies.
+    pip install tensorflow
+    pip install tflearn
+    pip install PIL
+    pip install numpy
+    
+    # Install additional dependencies.
+    apt-get install makeself
+    apt-get install nodejs
+
+    # Finally, install scraper.js's dependencies.
+    # This must be run from within the x-to-y/ directory.
+    npm install
+
+If you cannot install `PIL` via pip and you're on Ubuntu/Debian, then `sudo apt-get install python-pil` might work for you.
+
+If you run `x_to_y` and it crashes while "Scraping images" then you might have forgotten to install `scraper.js`'s dependencies by running `npm install` (installs ~150 MiB of dependencies.).
 
 ## License
 

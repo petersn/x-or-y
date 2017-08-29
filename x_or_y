@@ -1,0 +1,181 @@
+#!/usr/bin/python2
+
+import argparse, subprocess, string, tempfile, os, pprint, json, shutil, time
+
+BLUE  = "\033[94m"
+GREEN = "\033[92m"
+RED   = "\033[91m"
+ENDC  = "\033[0m"
+
+description = """
+%s__  __   ___  _ __   _   _
+\ \/ /  / _ \| '__| | | | |
+ >  <  | (_) | |    | |_| |
+/_/\_\  \___/|_|     \__, |
+                     |___/%s
+
+x_or_y is a quick and dirty tool for producing a classifier that can tell the
+difference between a small set of classes. It's designed to be the most dead
+simple easy deep learning package in the universe. To use it, you simply list
+the things you want to tell apart. For example:
+
+    $ x_or_y "Daniel Radcliffe" "Elijah Wood"
+
+Then x_or_y will sit there for quite a while (possibly over an hour), and
+possibly get your IP banned from Bing. Finally, it'll produce an executable
+called DanielRadcliffe_OR_ElijahWood which can distinguish between the two
+actors.
+
+    $ ./DanielRadcliffe_OR_ElijahWood /absolute/path/image.jpg
+    ... lots of processing...
+    RESULTS:
+        #1: [ 82.42%] Daniel Radcliffe
+        #2: [ 17.58%] Elijah Wood
+""" % (GREEN, ENDC)
+
+dependencies = [
+    ("tensorflow", False),
+    ("tflearn", False),
+    ("PIL", True),
+    ("numpy", True),
+]
+binaries = [
+    ("makeself", "makeself"),
+    ("node", "nodejs"),
+]
+
+def dependency_check():
+    missing = 0
+    for dep, apt_gettable in dependencies:
+        try:
+            __import__(dep)
+            print GREEN + "Successfully" + ENDC, "imported %s." % dep
+        except:
+            print
+            print RED + "Failed" + ENDC, "to import %s." % dep
+            print "Try:"
+            print "    sudo pip install %s" % dep
+            if apt_gettable:
+                print "Or, for Ubuntu/Debian:"
+                print "    sudo apt-get install python-%s" % dep.lower()
+            missing += 1
+    for binary, apt_package in binaries:
+        try:
+            subprocess.check_call([binary, "-v"])
+            print GREEN + "Successfully" + ENDC, "ran %s." % binary
+        except:
+            print
+            print RED + "Failed" + ENDC, "to execute %s." % binary
+            print "You need to install %s." % binary
+            print "On Ubuntu/Debian you can install with:"
+            print "    sudo apt-get install %s" % apt_package
+            missing += 1
+    return missing
+
+def sanitize(p):
+    whitelist = "_" + string.ascii_letters + string.digits
+    return "".join(i for i in p if i in whitelist)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="x_or_y", formatter_class=argparse.RawDescriptionHelpFormatter, description=description)
+    parser.add_argument("--output", default=None, help="the output path to write the classifier executable to")
+    parser.add_argument("--image-count", default=1000, type=int, help="images to download per thing to tell apart (default: 500)")
+    parser.add_argument("--epochs", default=100, type=int, help="number of training epochs to run (default: 100)")
+    parser.add_argument("thing-to-tell-apart", nargs="*", help="give a list of things to tell apart")
+    args = parser.parse_args()
+ 
+    def section(s):
+        print
+        print "=" * 50
+        print " " * 8 + BLUE + s + ENDC
+
+    def consent(message):
+        confirmation = raw_input(BLUE + message + ENDC +" [y/N] ")
+        return confirmation.strip().lower() in ("y", "yes")
+
+    classes = args.__dict__["thing-to-tell-apart"]
+    if len(classes) == 0:
+        parser.print_help()
+        exit()
+    elif len(classes) == 1:
+        print RED + "Error:" + ENDC, "Classifier that only \"distinguishes\" a single class is uninteresting."
+        exit()
+
+    # Compute the output path from the classes, if none was given.
+    if args.output == None:
+        args.output = sanitize("_OR_".join(classes))
+
+    # Confirm what we're going to do.
+    section("Confirm the following settings:")
+    print
+    print "Going to train a network to distinguish between the following %i classes:" % len(classes)
+    for i, cls in enumerate(classes):
+        print "    #%i: %s" % (i + 1, cls)
+    print "Going to download %i images per class, for a total of %i images." % (args.image_count, len(classes) * args.image_count)
+    print "Going to run %i epochs of training across the images." % (args.epochs)
+    print "Going to write the final result to:"
+    print "    %r" % (args.output,)
+    print
+    if not consent("Is this correct?"):
+        print RED + "NOT building." + ENDC
+        exit()
+
+    # Check for missing dependencies.
+    section("Checking dependencies.")
+    missing = dependency_check()
+    if missing:
+        print "\n" + RED + "Error:" + ENDC, "You're missing dependencies! See above for advice."
+        if not consent("Do you want to try anyway? (Might fail after hours of work.)"):
+            exit(1)
+
+    start_time = time.time()
+
+    # Do the scraping.
+    section("Scraping images.")
+    # Make a temporary directory.
+    work_dir = tempfile.mkdtemp()
+    images_dir = os.path.join(work_dir, "images")
+    os.mkdir(images_dir)
+
+    class_dirs = []
+    for i, cls in enumerate(classes):
+        print BLUE + "Downloading for:" + ENDC, cls
+        class_dir = os.path.join(images_dir, "class%i" % (i + 1))
+        class_dirs.append(class_dir)
+        os.mkdir(class_dir)
+        subprocess.check_call(["node", "scraper.js", "-n", str(args.image_count), "-o", class_dir, cls])
+
+    # Build the model.
+    section("Training model.")
+    import build_model
+    here = os.getcwd()
+    os.chdir(work_dir)
+    # Make a dist subdirectory, and do our work inside of it.
+    os.mkdir("dist")
+    os.chdir("dist")
+    config =  {
+        "name": "model",
+        "classes": classes,
+        "images": {d: cls for d, cls in zip(class_dirs, classes)},
+        "test-proportion" : 0.15,
+        "epochs": args.epochs,
+        "batch-size": 96,
+    }
+    with open("config.json", "w") as f:
+        json.dump(config, json)
+    print "Calling build_model.build_model() with configuration:"
+    pprint.pprint(config)
+    print
+    build_model.build_model(config)
+
+    # Assemble into a final executable with makeself.
+    section("Assembling final executable.")
+    os.chdir(work_dir)
+    subprocess.check_call(["makeself", "dist", "classify", "classify", "python2", "classify.py", "config.json"])
+    # Copy the resulting file to our requested location.
+    # First return to our previous working directory so that relative output paths work as expected.
+    os.chdir(here)
+    shutil.copy(os.path.join(work_dir, "classify"), args.output)
+
+    print GREEN + "Completed successfuly!" + ENDC, "(%.2f seconds)" % (time.time() - start_time)
+
