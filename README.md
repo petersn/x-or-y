@@ -39,7 +39,8 @@ This project has a lot of dependencies. For Ubuntu/Debian users:
     apt-get install nodejs
 
     # Finally, install scraper.js's dependencies.
-    # This must be run from within the x-to-y/ directory.
+    # For those unfamiliar with npm, this must be run from
+	# the root of the repo, so npm can find package.json.
     npm install
 
 If you cannot install `PIL` via pip and you're on Ubuntu/Debian, then `sudo apt-get install python-pil` might work for you.
