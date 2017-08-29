@@ -93,6 +93,10 @@ if __name__ == "__main__":
         confirmation = raw_input(BLUE + message + ENDC +" [y/N] ")
         return confirmation.strip().lower() in ("y", "yes")
 
+    def copy(src, dest):
+        print BLUE + "Copying" + ENDC, src, "->", dest
+        return shutil.copy(src, dest)
+
     classes = args.__dict__["thing-to-tell-apart"]
     if len(classes) == 0:
         parser.print_help()
@@ -148,7 +152,10 @@ if __name__ == "__main__":
     # Build the model.
     section("Training model.")
     import build_model
+    # Grab the current directory, and path to x_to_y before we cd.
     here = os.getcwd()
+    source_dir = os.path.dirname(os.path.realpath(__file__))
+    # Move into the temporary directory.
     os.chdir(work_dir)
     # Make a dist subdirectory, and do our work inside of it.
     os.mkdir("dist")
@@ -162,7 +169,7 @@ if __name__ == "__main__":
         "batch-size": 96,
     }
     with open("config.json", "w") as f:
-        json.dump(config, json)
+        json.dump(config, f)
     print "Calling build_model.build_model() with configuration:"
     pprint.pprint(config)
     print
@@ -171,11 +178,15 @@ if __name__ == "__main__":
     # Assemble into a final executable with makeself.
     section("Assembling final executable.")
     os.chdir(work_dir)
+    # Copy classify.py into the dist directory.
+    classify_path = os.path.join(source_dir, "classify.py")
+    copy(classify_path, os.path.join("dist", "classify.py"))
+    # Bundle it all together.
     subprocess.check_call(["makeself", "dist", "classify", "classify", "python2", "classify.py", "config.json"])
     # Copy the resulting file to our requested location.
     # First return to our previous working directory so that relative output paths work as expected.
     os.chdir(here)
-    shutil.copy(os.path.join(work_dir, "classify"), args.output)
+    copy(os.path.join(work_dir, "classify"), args.output)
 
     print GREEN + "Completed successfuly!" + ENDC, "(%.2f seconds)" % (time.time() - start_time)
 
