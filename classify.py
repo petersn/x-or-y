@@ -46,7 +46,7 @@ class Classifier:
         net = max_pool_2d(net, 2)
         net = fully_connected(net, 512, activation="relu")
         net = dropout(net, 0.5)
-        net = fully_connected(net, 2, activation="softmax")
+        net = fully_connected(net, len(self.config["classes"]), activation="softmax")
         self.net = regression(net,
             optimizer="adam",
             loss="categorical_crossentropy",
